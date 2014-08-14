@@ -5,7 +5,21 @@
 */
 
 (function($, window, document) {
-$.fn.include = function(options) {
+$.include = function(options, callbackComplete) {
+  /**
+  * Check the type-signature and fix the options accordingly
+  */
+  if (typeof options == 'string' || Array.isArray(options)) {
+    var tmpOptions = {};
+    tmpOptions.scripts = Array.isArray(options) ? options : [options];
+
+    options = tmpOptions;
+  }
+
+  if (typeof callbackComplete !== 'undefined') {
+    options.complete = callbackComplete;
+  }
+
   /**
   * jQuery Include Default Settings
   *
@@ -39,20 +53,23 @@ $.fn.include = function(options) {
         url: url,
         dataType: 'script',
         success: function() {
-          loadScripts(scripts);
+          // ...
         },
         error: function() {
           // ...
         },
+        complete: function() {
+          loadScripts(scripts);
+        }
       });
     } else {
       settings.complete();
     }
   };
 
-  return this.each(function() {
-    loadScripts(settings.scripts);
-  });
+  /**
+  * Procedures
+  */
+  loadScripts(settings.scripts);
 };
 })(jQuery, window, document);
-
