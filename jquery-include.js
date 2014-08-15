@@ -27,6 +27,7 @@ $.include = function(options, callbackComplete) {
   * @type {Object}
   */
   var settings = $.extend({
+    name : null,
     scripts: [],
     scope: 'global',
     success : function () {
@@ -41,20 +42,45 @@ $.include = function(options, callbackComplete) {
   }, options);
 
   /**
+  * Data type for the ajax call
+  *
+  * @property ajaxDataType
+  * @type {String}
+  */
+  var ajaxDataType = (settings.scope == 'global') ? 'script' : 'text';
+
+  /**
+  * Returns contents of a function
+  *
+  * @method getFunctionContents
+  * @param {Function} fn
+  * @returns {String} contents of the function (its body)
+  */
+  var getFunctionContents = function(fn) {
+    var fnBody = '~~' + fn.toString() + '~~';
+    return fnBody.replace('~~function () {', '').replace('}~~', '');
+  };
+
+  /**
   * Recursively loads an array of scripts in order given
   *
   * @method loadScripts
   * @param {Array} scripts URLs of the scripts to load
+  * @param {Object} scriptStatuses mapping of script URLs to success statuses
+  * @param {String} scriptBody accumulating content of script files to be eval'd
   */
-  var loadScripts = function(scripts, scriptStatuses) {
+  var loadScripts = function(scripts, scriptStatuses, scriptBody) {
     if (scripts.length) {
       var url = scripts.shift();
-      var dataType = settings.scope == 'global' ? 'script' : 'text';
 
       $.ajax({
         url: url,
-        dataType: 'script',
-        success: function() {
+        dataType: ajaxDataType,
+        success: function(response) {
+          if (ajaxDataType == 'text') {
+            scriptBody += '\n\n' + response;
+          }
+
           scriptStatuses[url] = true;
         },
         error: function() {
@@ -62,19 +88,32 @@ $.include = function(options, callbackComplete) {
         },
         complete: function() {
           scriptStatuses.length++;
-          loadScripts(scripts, scriptStatuses);
+          loadScripts(scripts, scriptStatuses, scriptBody);
         }
       });
     } else {
-      settings.complete();
-      $(document).trigger('includeComplete', [{scripts: scriptStatuses}]);
+      if (ajaxDataType == 'text') {
+        // evaluate the accumulating scriptBody content
+        var settingsCompleteCode = getFunctionContents(settings.complete);
+
+        eval(scriptBody);
+        eval(settingsCompleteCode);
+      } else {
+        // run the complete method
+        settings.complete();
+      }
+
+      $(document).trigger('includeComplete', [{
+        name: settings.name,
+        scripts: scriptStatuses
+      }]);
     }
   };
 
   /**
   * Procedures
   */
-  loadScripts(settings.scripts, { length: 0 });
+  loadScripts(settings.scripts, { length: 0 }, '');
 
   return this;
 };
