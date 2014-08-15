@@ -12,20 +12,25 @@
 * @type {Array}
 */
 var completedIncludes = [];
+var includeCount = 0;
 
 $.include = function(options, callbackComplete) {
+  includeCount++;
+  var tmpSettings = {};
+
   /**
   * Check the type-signature and fix the options accordingly
   */
-  if (typeof options == 'string' || Array.isArray(options)) {
-    var tmpOptions = {};
-    tmpOptions.scripts = Array.isArray(options) ? options : [options];
-
-    options = tmpOptions;
+  if (typeof options == 'string') {
+    tmpSettings.scripts = [options];
+  } else if (Array.isArray(options)) {
+    tmpSettings.scripts = options;
+  } else {
+    tmpSettings = options;
   }
 
   if (typeof callbackComplete !== 'undefined') {
-    options.complete = callbackComplete;
+    tmpSettings.onComplete = callbackComplete;
   }
 
   /**
@@ -34,20 +39,18 @@ $.include = function(options, callbackComplete) {
   * @property settings
   * @type {Object}
   */
+
   var settings = $.extend({
-    name : null,
+    name : 'include#' + includeCount,
     scripts: [],
     scope: 'local',
-    success : function () {
+    onEachInclude : function (script, status) {
       // ...
     },
-    error: function () {
-      // ...
-    },
-    complete : function() {
+    onComplete : function() {
       // ...
     }
-  }, options);
+  }, tmpSettings);
 
   /**
   * Data type for the ajax call
@@ -56,6 +59,15 @@ $.include = function(options, callbackComplete) {
   * @type {String}
   */
   var ajaxDataType = (settings.scope == 'global') ? 'script' : 'text';
+
+  /**
+  * Asynchronisity for ajax call - should be false if the callback is undefined
+  * and options is a string or an array
+  *
+  * @property ajaxDataType
+  * @type {String}
+  */
+  var ajaxAsync = true; // typeof callbackComplete !== 'undefined' || !(typeof options == 'string' || Array.isArray(options));
 
   /**
   * Returns contents of a function
@@ -84,6 +96,7 @@ $.include = function(options, callbackComplete) {
       $.ajax({
         url: url,
         dataType: ajaxDataType,
+        async: ajaxAsync,
         success: function(response) {
           if (ajaxDataType == 'text') {
             scriptBody += '\n\n' + response;
@@ -96,19 +109,20 @@ $.include = function(options, callbackComplete) {
         },
         complete: function() {
           scriptStatuses.length++;
+          settings.onEachInclude(url, scriptStatuses[url]);
           loadScripts(scripts, scriptStatuses, scriptBody);
         }
       });
     } else {
       if (ajaxDataType == 'text') {
         // evaluate the accumulating scriptBody content
-        var settingsCompleteCode = getFunctionContents(settings.complete);
+        var settingsCompleteCode = getFunctionContents(settings.onComplete);
 
         eval(scriptBody);
         eval(settingsCompleteCode);
       } else {
         // run the complete method
-        settings.complete();
+        settings.onComplete();
       }
 
       // keep local version of completedIncludes array for the trigger
@@ -117,8 +131,8 @@ $.include = function(options, callbackComplete) {
 
       $(document).trigger('includeComplete', [{
         name: settings.name,
-        scripts: scriptStatuses,
-        completed: completed,
+        statuses: scriptStatuses,
+        includes: completed,
       }]);
 
       // fix completedIncludes
@@ -129,7 +143,7 @@ $.include = function(options, callbackComplete) {
   /**
   * Procedures
   */
-  loadScripts(settings.scripts, { length: 0 }, '');
+  loadScripts(settings.scripts.slice(0), { length: 0 }, '');
 
   return this;
 };
