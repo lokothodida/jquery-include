@@ -15,7 +15,6 @@
         $.include({
           name: 'loadLocal',
           scripts: ['js/local.js'],
-          scope: 'local',
           complete: function() {
             console.log('start loadLocal');
             console.log('Type of Local is : ' + typeof Local);
@@ -27,6 +26,7 @@
         $.include({
           name: 'loadGlobal',
           scripts: ['js/global.js'],
+          scope: 'global',
           complete: function() {
             console.log('start loadGlobal');
             console.log('Type of Global is : ' + typeof Global);
@@ -38,7 +38,6 @@
         $.include({
           name: 'loadExample',
           scripts: ['js/example.js'],
-          scope: 'local',
           complete: function() {
             console.log('start loadExample');
             console.log('Type of Example is : ' + typeof Example);

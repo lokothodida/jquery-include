@@ -37,7 +37,7 @@ $.include = function(options, callbackComplete) {
   var settings = $.extend({
     name : null,
     scripts: [],
-    scope: 'global',
+    scope: 'local',
     success : function () {
       // ...
     },
