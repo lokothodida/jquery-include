@@ -11,19 +11,50 @@
     <h1>jQuery Include - Local Scope Example</h1>
     <script>
       $(document).ready(function() {
-        // include one file
-        $.include('js/example.js', function() {
-          console.log(Example);
+        // loads locally
+        $.include({
+          name: 'loadLocal',
+          scripts: ['js/local.js'],
+          scope: 'local',
+          complete: function() {
+            console.log('start loadLocal');
+            console.log('Type of Local is : ' + typeof Local);
+            console.log('end loadLocal');
+          }
         });
 
-        // include multiple files
-        $.include(['js/example.js', 'js/example.module.js'], function() {
-          console.log(Example);
-          console.log(Example.module);
+        // loads globally
+        $.include({
+          name: 'loadGlobal',
+          scripts: ['js/global.js'],
+          complete: function() {
+            console.log('start loadGlobal');
+            console.log('Type of Global is : ' + typeof Global);
+            console.log('end loadGlobal');
+          }
         });
-        
+
+        // loads locally
+        $.include({
+          name: 'loadExample',
+          scripts: ['js/example.js'],
+          scope: 'local',
+          complete: function() {
+            console.log('start loadExample');
+            console.log('Type of Example is : ' + typeof Example);
+            console.log('end loadExample');
+          }
+        });
+
         $(this).on('includeComplete', function(event, params) {
-          console.log(params.scripts.length);
+          if (params.name == 'loadExample') {
+            console.log('after our procedures...');
+            // let's check what variables exist
+            console.log('Type of Global is : ' + typeof Global);    // exists
+            console.log('Type of Local is : ' + typeof Local);      // doesn't exist
+            console.log('Type of Example is : ' + typeof Local);    // doesn't exist
+            console.log('end');
+          }
         });
       });
     </script>
