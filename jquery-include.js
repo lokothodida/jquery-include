@@ -5,6 +5,14 @@
 */
 
 (function($, window, document) {
+/**
+* Keeps track of all of the 'includes' that have completed
+*
+* @property completedIncludes
+* @type {Array}
+*/
+var completedIncludes = [];
+
 $.include = function(options, callbackComplete) {
   /**
   * Check the type-signature and fix the options accordingly
@@ -103,10 +111,18 @@ $.include = function(options, callbackComplete) {
         settings.complete();
       }
 
+      // keep local version of completedIncludes array for the trigger
+      var completed = completedIncludes.slice(0);
+      completed.push(settings.name);
+
       $(document).trigger('includeComplete', [{
         name: settings.name,
-        scripts: scriptStatuses
+        scripts: scriptStatuses,
+        completed: completed,
       }]);
+
+      // fix completedIncludes
+      completedIncludes = completed;
     }
   };
 
