@@ -13,14 +13,20 @@
       $(document).ready(function() {
         // include one file
         $.include('js/example.js', function() {
-          console.log(Example);
+          console.log(typeof Example);
         });
 
         // include multiple files
         $.include(['js/example.js', 'js/example.module.js'], function() {
-          console.log(Example);
-          console.log(Example.module);
+          console.log(typeof Example);
+          console.log(typeof Example.module);
         });
+      })
+      .on('includeComplete', function(e, params) {
+        if (params.includes.length == 2) {
+          console.log('all scripts loaded');
+          console.log(typeof Example);
+        }
       });
     </script>
   </body>

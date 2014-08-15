@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>jQuery Include - Loading Dependencies</title>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="../jquery-include.js"></script>
+    <script src="js/jquery-plugin-example.js"></script>
+    <link rel="stylesheet" href="css/example.css">
+  </head>
+  <body>
+    <h1>jQuery Include - jQuery Plugin Example</h1>
+    <p>This example shows how one might develop a jQuery plugin that uses jQuery Include to load its dependencies.</p>
+
+    <div id="example">some text</div>
+
+    <script>
+      $(document).on('includeComplete', function(event, params) {
+        console.log(params);
+        if (params.name == 'loadPluginExample') {
+          $('#example').pluginExample();
+        };
+      });
+    </script>
+  </body>
+</html>
