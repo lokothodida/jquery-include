@@ -28,6 +28,7 @@ $.include = function(options, callbackComplete) {
   */
   var settings = $.extend({
     scripts: [],
+    scope: 'global',
     success : function () {
       // ...
     },
@@ -45,31 +46,36 @@ $.include = function(options, callbackComplete) {
   * @method loadScripts
   * @param {Array} scripts URLs of the scripts to load
   */
-  var loadScripts = function(scripts) {
+  var loadScripts = function(scripts, scriptStatuses) {
     if (scripts.length) {
       var url = scripts.shift();
+      var dataType = settings.scope == 'global' ? 'script' : 'text';
 
       $.ajax({
         url: url,
         dataType: 'script',
         success: function() {
-          // ...
+          scriptStatuses[url] = true;
         },
         error: function() {
-          // ...
+          scriptStatuses[url] = false;
         },
         complete: function() {
-          loadScripts(scripts);
+          scriptStatuses.length++;
+          loadScripts(scripts, scriptStatuses);
         }
       });
     } else {
       settings.complete();
+      $(document).trigger('includeComplete', [{scripts: scriptStatuses}]);
     }
   };
 
   /**
   * Procedures
   */
-  loadScripts(settings.scripts);
+  loadScripts(settings.scripts, { length: 0 });
+
+  return this;
 };
 })(jQuery, window, document);
