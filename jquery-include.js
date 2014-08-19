@@ -5,69 +5,36 @@
 */
 
 (function($, window, document) {
-/**
-* Keeps track of all of the 'includes' that have completed
-*
-* @property completedIncludes
-* @type {Array}
-*/
-var completedIncludes = [];
-var includeCount = 0;
+var includes = [];
+var totalIncludes = 0;
 
-$.include = function(options, callbackComplete) {
-  includeCount++;
-  var tmpSettings = {};
+/** $.include() */
+$.include = function(options, onComplete) {
+  totalIncludes++;
 
-  /**
-  * Check the type-signature and fix the options accordingly
-  */
-  if (typeof options == 'string') {
-    tmpSettings.scripts = [options];
-  } else if (Array.isArray(options)) {
-    tmpSettings.scripts = options;
-  } else {
-    tmpSettings = options;
-  }
-
-  if (typeof callbackComplete !== 'undefined') {
-    tmpSettings.onComplete = callbackComplete;
-  }
-
-  /**
-  * jQuery Include Default Settings
-  *
-  * @property settings
-  * @type {Object}
-  */
-
-  var settings = $.extend({
-    name : 'include#' + includeCount,
+  var settings = {
+    name: 'include' + totalIncludes,
     scripts: [],
-    scope: 'local',
-    onEachInclude : function (script, status) {
-      // ...
-    },
-    onComplete : function() {
-      // ...
-    }
-  }, tmpSettings);
+    scope: 'global',
+    onComplete: false,
+  };
 
-  /**
-  * Data type for the ajax call
-  *
-  * @property ajaxDataType
-  * @type {String}
-  */
-  var ajaxDataType = (settings.scope == 'global') ? 'script' : 'text';
+  // correct the settings based on the type signature
+  if (typeof onComplete !== 'undefined') {
+    settings.onComplete = onComplete;
+  }
 
-  /**
-  * Asynchronisity for ajax call - should be false if the callback is undefined
-  * and options is a string or an array
-  *
-  * @property ajaxDataType
-  * @type {String}
-  */
-  var ajaxAsync = true; // typeof callbackComplete !== 'undefined' || !(typeof options == 'string' || Array.isArray(options));
+  if (typeof options == 'string') {
+    settings.scripts = [options];
+  } else if (Array.isArray(options)) {
+    settings.scripts = options;
+  } else {
+    settings = $.extend(settings, options);
+  }
+
+  var ajax = {};
+  ajax.dataType = (settings.scope == 'global') ? 'script' : 'text';
+  ajax.async = ajax.dataType === 'script';
 
   /**
   * Returns contents of a function
@@ -91,30 +58,31 @@ $.include = function(options, callbackComplete) {
   */
   var loadScripts = function(scripts, scriptStatuses, scriptBody) {
     if (scripts.length) {
+      // we still have scripts to load
       var url = scripts.shift();
 
       $.ajax({
         url: url,
-        dataType: ajaxDataType,
-        async: ajaxAsync,
+        dataType: ajax.dataType,
+        async: ajax.async,
         success: function(response) {
-          if (ajaxDataType == 'text') {
+          if (ajax.dataType == 'text') {
             scriptBody += '\n\n' + response;
           }
 
           scriptStatuses[url] = true;
         },
-        error: function() {
+        error: function(a,b,c) {
           scriptStatuses[url] = false;
         },
         complete: function() {
           scriptStatuses.length++;
-          settings.onEachInclude(url, scriptStatuses[url]);
           loadScripts(scripts, scriptStatuses, scriptBody);
         }
       });
     } else {
-      if (ajaxDataType == 'text') {
+      // all scripts have loaded
+      if (ajax.dataType == 'text') {
         // evaluate the accumulating scriptBody content
         var settingsCompleteCode = getFunctionContents(settings.onComplete);
 
@@ -125,26 +93,62 @@ $.include = function(options, callbackComplete) {
         settings.onComplete();
       }
 
-      // keep local version of completedIncludes array for the trigger
-      var completed = completedIncludes.slice(0);
-      completed.push(settings.name);
+      includes.push(settings.name);
 
-      $(document).trigger('includeComplete', [{
+      $(document).trigger('include', [{
         name: settings.name,
-        statuses: scriptStatuses,
-        includes: completed,
+        status: scriptStatuses,
       }]);
-
-      // fix completedIncludes
-      completedIncludes = completed;
     }
   };
 
-  /**
-  * Procedures
-  */
   loadScripts(settings.scripts.slice(0), { length: 0 }, '');
 
   return this;
+};
+
+/**
+$(...).include()
+*/
+
+$.fn.include = function(names, callback) {
+  var settings = {
+    names: (typeof names === 'function') ? false : names,
+    callback: (typeof callback === 'function') ? callback : names,
+  };
+
+  if (typeof settings.names === 'string') {
+    settings.names = [settings.names];
+  }
+
+  var includeBlocksLoaded = function(names) {
+    var status = true;
+    var i = 0;
+
+    while ((i < names.length) && status) {
+      status = status && (includes.indexOf(names[i]) > -1);
+      i++;
+    }
+
+    return status;
+  };
+
+  return this.each(function() {
+    var includesChecked = {};
+
+    $(this).on('include', function(event, params) {
+      var name = params.name;
+      var status = params.status;
+      var includeCheckId = settings.names.toString();
+
+      if (!settings.names) {
+        settings.callback(name, status);
+      } else if (!includesChecked[includeCheckId] && includeBlocksLoaded(settings.names)) {
+        settings.callback(status);
+
+        includesChecked[includeCheckId] = true;
+      }
+    });
+  });
 };
 })(jQuery, window, document);
