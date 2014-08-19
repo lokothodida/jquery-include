@@ -13,20 +13,19 @@
       $(document).ready(function() {
         // include one file
         $.include('js/example.js', function() {
-          console.log(typeof Example);
+          console.log(typeof Example); // function
         });
 
         // include multiple files
         $.include(['js/example.js', 'js/example.module.js'], function() {
-          console.log(typeof Example);
-          console.log(typeof Example.module);
+          console.log(typeof Example);        // function
+          console.log(typeof Example.module); // function
         });
-      })
-      .on('includeComplete', function(e, params) {
-        if (params.includes.length == 2) {
-          console.log('all scripts loaded');
-          console.log(typeof Example);
-        }
+      });
+
+      $(document).include(function(name, status) {
+        console.log(name);
+        console.log(status);
       });
     </script>
   </body>
